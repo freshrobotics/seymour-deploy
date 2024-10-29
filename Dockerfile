@@ -7,7 +7,7 @@ ARG INSTALL_DIR="/opt/deploy"
 
 # -------------
 # create base stage without ros build tools for deployment
-FROM docker.io/library/ubuntu:jammy as base-stage
+FROM docker.io/library/ubuntu:jammy AS base-stage
 
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG RUN_AS_UID=1000
@@ -15,8 +15,6 @@ ARG RUN_AS_GID=1000
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV ROS_DISTRO="humble"
-ENV CYCLONEDDS_URI="${DDS_CONFIG_DIR}/cyclonedds.xml"
-ENV FASTRTPS_DEFAULT_PROFILES_FILE="${DDS_CONFIG_DIR}/fastrtps.xml"
 
 # RMW_IMPLEMENTATION -> "rmw_cyclonedds_cpp" | "rmw_fastrtps_cpp"
 ENV RMW_IMPLEMENTATION="rmw_fastrtps_cpp"
@@ -25,6 +23,10 @@ ENV RMW_IMPLEMENTATION="rmw_fastrtps_cpp"
 ARG USERNAME
 ARG HOME_DIR
 ARG WORKSPACE
+ARG DDS_CONFIG_DIR
+
+ENV CYCLONEDDS_URI="${DDS_CONFIG_DIR}/cyclonedds.xml"
+ENV FASTRTPS_DEFAULT_PROFILES_FILE="${DDS_CONFIG_DIR}/fastrtps.xml"
 
 # setup utc timeszone & install base ubuntu packages
 RUN echo 'Etc/UTC' > /etc/timezone  \
@@ -77,7 +79,6 @@ RUN groupadd --gid $RUN_AS_GID ${USERNAME} \
   && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} \
   && chmod 0440 /etc/sudoers.d/${USERNAME} \
   && echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ${HOME_DIR}/.bashrc \
-  && echo "source install/setup.bash" >> ${HOME_DIR}/.bashrc \
   && echo "source /etc/profile.d/bash_completion.sh" >> ${HOME_DIR}/.bashrc \
   && chown -R ${USERNAME}: ${HOME_DIR}
 
@@ -90,19 +91,10 @@ WORKDIR ${WORKSPACE}
 # copy code into workspace and set ownership to user
 ADD --chown=${USERNAME}:${USERNAME} ./src ${WORKSPACE}/src
 
-# install deps as non-root user
-USER ${USERNAME}
-RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash \
-  && sudo apt-get update \
-  && sudo rosdep init \
-  && rosdep update --rosdistro ${ROS_DISTRO} \
-  && rosdep install -y -r -i --from-paths ${WORKSPACE}/src \
-  && sudo rm -rf /var/lib/apt/lists/*"
-
 
 # -------------
 # build stage installs build tools and builds system packages
-FROM base-stage as build-stage
+FROM base-stage AS build-stage
 
 ARG DEBIAN_FRONTEND="noninteractive"
 
@@ -140,10 +132,12 @@ ADD --chown=${USERNAME}:${USERNAME} ./src ${WORKSPACE}/src
 # install deps and build as non-root user
 USER ${USERNAME}
 RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash \
+  && sudo apt-get update \
   && sudo rosdep init \
   && rosdep update --rosdistro ${ROS_DISTRO} \
   && rosdep install -y -r -i --from-paths ${WORKSPACE}/src \
-  && colcon build"
+  && colcon build \
+  && sudo rm -rf /var/lib/apt/lists/*"
 
 
 # -------------
