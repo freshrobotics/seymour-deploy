@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<dds xmlns="http://www.eprosima.com">
+    <profiles>
+
+        <library_settings>
+            <intraprocess_delivery>OFF</intraprocess_delivery> <!-- OFF | USER_DATA_ONLY | FULL -->
+        </library_settings>
+
+        <transport_descriptors>
+            <transport_descriptor>
+                <transport_id>LoopbackUDPTransport</transport_id>
+                <type>UDPv4</type>
+                <interfaceWhiteList>
+                    <address>127.0.0.1</address>
+                </interfaceWhiteList>
+            </transport_descriptor>
+
+            <transport_descriptor>
+                <transport_id>LoopbackTcpTransport</transport_id>
+                <type>TCPv4</type>
+                <interfaceWhiteList>
+                    <address>127.0.0.1</address>
+                </interfaceWhiteList>
+            </transport_descriptor>
+        </transport_descriptors>
+
+        <participant profile_name="LoopbackUDPTransportParticipant" is_default_profile="true">
+            <rtps>
+                <userTransports>
+                    <transport_id>LoopbackUDPTransport</transport_id>
+                </userTransports>
+            </rtps>
+        </participant>
+
+        <participant profile_name="LoopbackTcpTransportParticipant">
+            <rtps>
+                <userTransports>
+                    <transport_id>LoopbackTcpTransport</transport_id>
+                </userTransports>
+            </rtps>
+        </participant>
+
+    </profiles>
+</dds>
