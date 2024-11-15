@@ -35,6 +35,7 @@ RUN echo 'Etc/UTC' > /etc/timezone  \
     bash-completion \
     dirmngr \
     gnupg2 \
+    iputils-ping \
     python-is-python3 \
     python3-pip \
     sudo \
@@ -82,16 +83,6 @@ RUN groupadd --gid $RUN_AS_GID ${USERNAME} \
   && echo "source /etc/profile.d/bash_completion.sh" >> ${HOME_DIR}/.bashrc \
   && chown -R ${USERNAME}: ${HOME_DIR}
 
-# create workspace and source dir
-RUN mkdir -p ${WORKSPACE} \
-  && chown -R ${USERNAME}: ${HOME_DIR}
-WORKDIR ${WORKSPACE}
-
-
-# copy code into workspace and set ownership to user
-ADD --chown=${USERNAME}:${USERNAME} ./src ${WORKSPACE}/src
-
-
 # -------------
 # build stage installs build tools and builds system packages
 FROM base-stage AS build-stage
@@ -107,6 +98,9 @@ ARG WORKSPACE
 # leave /var/lib/apt/lists for rosdep below
 RUN apt-get update && apt-get install --no-install-recommends -y \
     build-essential \
+    clang-format \
+    clang-tidy \
+    clangd \
     git \
     python3-colcon-common-extensions \
     python3-colcon-mixin \
@@ -145,8 +139,7 @@ RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash \
 FROM base-stage
 
 # label with source repo
-LABEL org.opencontainers.image.source \
-  https://github.com/freshrobotics/seymour-deploy
+LABEL org.opencontainers.image.source=https://github.com/freshrobotics/seymour-deploy
 
 ARG DEBIAN_FRONTEND="noninteractive"
 
