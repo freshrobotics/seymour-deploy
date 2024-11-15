@@ -3,15 +3,22 @@ SHELL := /bin/bash
 PACKAGE=seymour-deploy
 VERSION:=0.1.0
 PLATFORM=linux/amd64
-#PLATFORM=linux/arm64
+# PLATFORM=linux/arm64
 CONTAINER:=ghcr.io/freshrobotics/$(PACKAGE)-$(PLATFORM):$(VERSION)
-TARFILE:=${PACKAGE}-$(PLATFORM)-${VERSION}.tar
+TARFILE:=${PACKAGE}-${VERSION}.tar
+# RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+DDS_CONFIG_DIR=/opt/dds/config
+CYCLONEDDS_URI=$(DDS_CONFIG_DIR)/cyclonedds-loopback.xml
+FASTRTPS_DEFAULT_PROFILES_FILE=$(DDS_CONFIG_DIR)/fastrtps-loopback.xml
 
 DOCKER_RUN_ARGS=--rm -it \
 		--platform $(PLATFORM) \
 		--privileged \
 		--network host \
-		--ipc host
+		--env RMW_IMPLEMENTATION=$(RMW_IMPLEMENTATION) \
+		--env CYCLONEDDS_URI=$(CYCLONEDDS_URI) \
+		--env FASTRTPS_DEFAULT_PROFILES_FILE=$(FASTRTPS_DEFAULT_PROFILES_FILE)
 
 PHONY: help
 help: ## show help message
@@ -40,6 +47,7 @@ shell: ## get (another) shell to running container
 image: ## builds the deployable container image
 	docker build \
 		--platform $(PLATFORM) \
+		--build-arg DDS_CONFIG_DIR=$(DDS_CONFIG_DIR) \
 		--tag $(CONTAINER) \
 		.
 
@@ -47,6 +55,7 @@ image: ## builds the deployable container image
 build-stage-image: ## build container image to build stage
 	docker build \
 		--platform $(PLATFORM) \
+		--build-arg DDS_CONFIG_DIR=$(DDS_CONFIG_DIR) \
 		--tag $(CONTAINER) \
 		--target build-stage \
 		.
